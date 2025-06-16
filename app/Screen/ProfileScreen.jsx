@@ -10,7 +10,7 @@
 
 // Import necessary libraries and components
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, ScrollView, TextInput, SafeAreaView, Platform } from 'react-native';
+import { StyleSheet, View, Text, Image, TouchableOpacity, ScrollView, TextInput, SafeAreaView, Platform, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Nunito_400Regular, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import { SourceSansPro_400Regular, SourceSansPro_600SemiBold } from '@expo-google-fonts/source-sans-pro';
@@ -23,6 +23,10 @@ import LegalIcon from '../../assets/images/page-flip.png';
 import LogoutIcon from '../../assets/images/exit.png';
 import CapybaraFront from '../../assets/images/capybara-front.png';
 import ArrowLeft from '../../assets/images/arrow-left.png';
+import TrophyIcon from '../../assets/images/capybara-gafas.jpg';
+
+// Import components
+import AchievementsPanel from '../../components/ui/AchievementsPanel';
 
 // Import constants
 import { Colors } from '../../constants/Colors';
@@ -40,6 +44,7 @@ const ProfileScreen = () => {
 
   // State management for user data and editing mode
   const [isEditing, setIsEditing] = useState(false);  // Controls whether the user is in edit mode
+  const [showAchievements, setShowAchievements] = useState(false); // Controls whether to show achievements panel
   
   // Default user data that will be shown if no saved data exists
   const [userData, setUserData] = useState({
@@ -83,9 +88,10 @@ const ProfileScreen = () => {
       try {
         const storedData = await AsyncStorage.getItem('userData');
         if (storedData) {
-          setUserData(JSON.parse(storedData));
-          setEditedData(JSON.parse(storedData));
-          console.log('User data refreshed successfully');
+          const parsedData = JSON.parse(storedData);
+          setUserData(parsedData);
+          setEditedData(parsedData);
+          // Eliminamos el console.log para mejorar rendimiento
         }
       } catch (error) {
         console.error('Error refreshing user data:', error);
@@ -95,13 +101,8 @@ const ProfileScreen = () => {
     // Call refresh immediately when component mounts or when returning to this screen
     refreshUserData();
     
-    // Set up a timer to refresh data every second (for development purposes)
-    const refreshTimer = setInterval(refreshUserData, 1000);
-    
-    // Clean up the timer when component unmounts
-    return () => {
-      clearInterval(refreshTimer);
-    };
+    // Eliminamos el timer que se ejecutaba cada segundo ya que afecta al rendimiento
+    // y no es necesario en producción
   }, []);
 
   /**
@@ -164,6 +165,13 @@ const ProfileScreen = () => {
    */
   const navigateToEditProfile = () => {
     router.push('/Screen/EditProfileScreen');
+  };
+  
+  /**
+   * Toggle function to show/hide achievements panel
+   */
+  const toggleAchievements = () => {
+    setShowAchievements(!showAchievements);
   };
 
   /**
@@ -290,8 +298,10 @@ const ProfileScreen = () => {
       marginBottom: 30,
       width: 150,
       alignItems: 'center',
-      borderBottomWidth: 4,
-      borderBottomColor: '#0056a8', // Un azul más oscuro que el color principal
+      borderWidth: 2,                // Borde completo alrededor del botón
+      borderColor: '#0056a8',        // Un azul más oscuro que el color principal
+      borderBottomWidth: 4,          // Borde inferior más grueso
+      borderBottomColor: '#0056a8',  // Un azul más oscuro que el color principal
     },
     editProfileText: {
       fontFamily: Fonts.nunitoBold,
@@ -397,6 +407,23 @@ const ProfileScreen = () => {
       padding: 0,
       tintColor: '#FFFFFF', // Cambiar el color de la flecha a blanco
     },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      padding: 20,
+    },
+    modalContent: {
+      width: '100%',
+      maxHeight: '90%',
+      borderRadius: 20,
+      overflow: 'hidden',
+    },
+    achievementsPanel: {
+      width: '100%',
+      height: '100%',
+    },
     title: {
       color: Colors.brown,
       fontFamily: Fonts.nunitoBold,
@@ -417,7 +444,13 @@ const ProfileScreen = () => {
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.backButton}>
             <View style={styles.backButtonCircle}>
-              <Image source={ArrowLeft} style={styles.arrowIcon} />
+              <Image 
+                source={ArrowLeft} 
+                style={styles.arrowIcon}
+                resizeMode="contain"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+              />
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar perfil</Text>
@@ -432,6 +465,11 @@ const ProfileScreen = () => {
               <Image 
                 source={userData.profileImage || CapybaraFront}
                 style={styles.capybaraImage}
+                resizeMode="cover"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+                // Propiedades adicionales para optimizar el rendimiento
+                cachePolicy="memory-disk"
               />
               <Text style={styles.editPhotoText}>Pulsa para cambiar la foto</Text>
             </TouchableOpacity>
@@ -481,7 +519,13 @@ const ProfileScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => {}} style={styles.backButton}>
           <View style={styles.backButtonCircle}>
-            <Image source={ArrowLeft} style={styles.arrowIcon} />
+            <Image 
+              source={ArrowLeft} 
+              style={styles.arrowIcon}
+              resizeMode="contain"
+              fadeDuration={0}
+              progressiveRenderingEnabled={true}
+            />
           </View>
         </TouchableOpacity>
       </View>
@@ -491,6 +535,11 @@ const ProfileScreen = () => {
           <Image 
             source={userData.profileImage || CapybaraFront}
             style={styles.capybaraImage}
+            resizeMode="cover"
+            fadeDuration={0}
+            progressiveRenderingEnabled={true}
+            // Propiedades adicionales para optimizar el rendimiento
+            cachePolicy="memory-disk"
           />
         </View>
         
@@ -508,11 +557,41 @@ const ProfileScreen = () => {
           
           <TouchableOpacity style={[styles.menuItem, {backgroundColor: Colors.light}]}>
             <View style={styles.menuItemLeft}>
-              <Image source={PlanIcon} style={[styles.menuItemIcon, {tintColor: Colors.blue}]} />
-              <Text style={[styles.planText, {color: Colors.blue}]}>Plan</Text>
+              <Image 
+                source={PlanIcon} 
+                style={[styles.menuItemIcon, {tintColor: Colors.blue}]}
+                resizeMode="contain"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+              />
+              <Text style={[styles.planText, {color: Colors.dark}]}>Plan</Text>
             </View>
             <View style={styles.menuItemRight}>
               <Text style={[styles.menuItemValue, {color: Colors.blue}]}>Mensual</Text>
+              <Text style={[styles.menuItemArrow, {color: Colors.blue}]}>›</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Logros</Text>
+          
+          <TouchableOpacity 
+            style={[styles.menuItem, {backgroundColor: Colors.lightBlue}]} 
+            onPress={toggleAchievements}
+          >
+            <View style={styles.menuItemLeft}>
+              <Image 
+                source={TrophyIcon} 
+                style={[styles.menuItemIcon, {tintColor: null, borderRadius: 12}]}
+                resizeMode="cover"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+              />
+              <Text style={[styles.menuItemText, {color: Colors.dark, fontFamily: Fonts.nunitoBold}]}>Mis Logros</Text>
+            </View>
+            <View style={styles.menuItemRight}>
+              <Text style={[styles.menuItemValue, {color: Colors.blue}]}>6 disponibles</Text>
               <Text style={[styles.menuItemArrow, {color: Colors.blue}]}>›</Text>
             </View>
           </TouchableOpacity>
@@ -523,17 +602,29 @@ const ProfileScreen = () => {
           
           <TouchableOpacity style={[styles.menuItem, {backgroundColor: '#F2F2F2'}]} onPress={navigateToLegalInfo}>
             <View style={styles.menuItemLeft}>
-              <Image source={LegalIcon} style={[styles.menuItemIcon, {tintColor: Colors.textGray}]} />
-              <Text style={[styles.menuItemText, {color: Colors.textGray}]}>Información legal</Text>
+              <Image 
+                source={LegalIcon} 
+                style={[styles.menuItemIcon, {tintColor: Colors.blue}]}
+                resizeMode="contain"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+              />
+              <Text style={[styles.menuItemText, {color: Colors.dark}]}>Información legal</Text>
             </View>
             <View style={styles.menuItemRight}>
-              <Text style={[styles.menuItemArrow, {color: Colors.textGray}]}>›</Text>
+              <Text style={[styles.menuItemArrow, {color: Colors.blue}]}>›</Text>
             </View>
           </TouchableOpacity>
           
           <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem, {backgroundColor: '#EFEFEF'}]} onPress={handleLogout}>
             <View style={styles.menuItemLeft}>
-              <Image source={LogoutIcon} style={[styles.menuItemIcon, {tintColor: Colors.red}]} />
+              <Image 
+                source={LogoutIcon} 
+                style={[styles.menuItemIcon, {tintColor: Colors.red}]}
+                resizeMode="contain"
+                fadeDuration={0}
+                progressiveRenderingEnabled={true}
+              />
               <Text style={[styles.menuItemText, styles.logoutText]}>Cerrar sesión</Text>
             </View>
           </TouchableOpacity>
@@ -542,6 +633,22 @@ const ProfileScreen = () => {
         <Text style={styles.versionText}>Version 1.1</Text>
       </ScrollView>
       
+      {/* Modal para mostrar el panel de logros */}
+      <Modal
+        visible={showAchievements}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAchievements(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <AchievementsPanel 
+              onClose={() => setShowAchievements(false)} 
+              style={styles.achievementsPanel}
+            />
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
