@@ -15,7 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Nunito_400Regular, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import { SourceSansPro_400Regular, SourceSansPro_600SemiBold } from '@expo-google-fonts/source-sans-pro';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+// Ya no necesitamos useRouter de expo-router
 
 // Import image assets
 import PlanIcon from '../../assets/images/spark.png';
@@ -35,10 +35,10 @@ import Fonts from '../../constants/Fonts';
 /**
  * Main ProfileScreen component
  * Displays user profile information and navigation options
+ * @param {Object} props - Component props including navigation
  */
-const ProfileScreen = () => {
-  // Initialize router for navigation between screens
-  const router = useRouter();
+const ProfileScreen = ({ navigation }) => {
+  // We use the navigation prop from React Navigation
   
   // Use the color constants directly from Colors.js
 
@@ -79,8 +79,8 @@ const ProfileScreen = () => {
   }, []);
   
   /**
-   * Effect hook to refresh user data when the screen receives focus
-   * This ensures the profile image and other data are updated after editing
+   * Effect hook to refresh user data when the component mounts
+   * This ensures the profile image and other data are loaded initially
    */
   useEffect(() => {
     // Function to refresh data
@@ -89,21 +89,54 @@ const ProfileScreen = () => {
         const storedData = await AsyncStorage.getItem('userData');
         if (storedData) {
           const parsedData = JSON.parse(storedData);
-          setUserData(parsedData);
+          // Forzamos una actualización completa del estado
+          setUserData(prevState => {
+            // Solo actualizamos si hay cambios reales
+            if (JSON.stringify(prevState) !== storedData) {
+              return parsedData;
+            }
+            return prevState;
+          });
           setEditedData(parsedData);
-          // Eliminamos el console.log para mejorar rendimiento
         }
       } catch (error) {
         console.error('Error refreshing user data:', error);
       }
     };
     
-    // Call refresh immediately when component mounts or when returning to this screen
+    // Call refresh immediately when component mounts
     refreshUserData();
-    
-    // Eliminamos el timer que se ejecutaba cada segundo ya que afecta al rendimiento
-    // y no es necesario en producción
   }, []);
+  
+  /**
+   * Effect hook to refresh user data when the component is focused
+   * This ensures the profile image and other data are updated after editing
+   */
+  useEffect(() => {
+    // En React Navigation, podemos usar la propiedad navigation.addListener
+    // que se pasa automáticamente a los componentes de pantalla
+    const unsubscribe = navigation?.addListener('focus', () => {
+      // Cuando la pantalla recibe el foco, forzamos una actualización de los datos
+      const refreshUserData = async () => {
+        try {
+          const storedData = await AsyncStorage.getItem('userData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            setUserData(parsedData);
+            setEditedData(parsedData);
+          }
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
+      };
+      refreshUserData();
+    });
+    
+    // Limpiamos el listener cuando el componente se desmonte
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [navigation]);
 
   /**
    * Saves user data to AsyncStorage for persistence
@@ -157,14 +190,14 @@ const ProfileScreen = () => {
    * Navigation function to the Legal Information screen
    */
   const navigateToLegalInfo = () => {
-    router.push('/Screen/legal-info');
+    navigation.navigate('Legal Info');
   };
   
   /**
    * Navigation function to the Edit Profile screen
    */
   const navigateToEditProfile = () => {
-    router.push('/Screen/EditProfileScreen');
+    navigation.navigate('Edit Profile');
   };
   
   /**
@@ -469,7 +502,9 @@ const ProfileScreen = () => {
                 fadeDuration={0}
                 progressiveRenderingEnabled={true}
                 // Propiedades adicionales para optimizar el rendimiento
-                cachePolicy="memory-disk"
+                cachePolicy="memory"
+                // Añadimos una key única basada en la imagen para forzar la actualización
+                key={userData.profileImage ? JSON.stringify(userData.profileImage) : 'default'}
               />
               <Text style={styles.editPhotoText}>Pulsa para cambiar la foto</Text>
             </TouchableOpacity>
@@ -539,7 +574,9 @@ const ProfileScreen = () => {
             fadeDuration={0}
             progressiveRenderingEnabled={true}
             // Propiedades adicionales para optimizar el rendimiento
-            cachePolicy="memory-disk"
+            cachePolicy="memory"
+            // Añadimos una key única basada en la imagen para forzar la actualización
+            key={userData.profileImage ? JSON.stringify(userData.profileImage) : 'default'}
           />
         </View>
         

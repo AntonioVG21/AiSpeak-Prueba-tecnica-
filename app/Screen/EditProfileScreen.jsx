@@ -15,7 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Nunito_400Regular, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import { SourceSansPro_400Regular, SourceSansPro_600SemiBold } from '@expo-google-fonts/source-sans-pro';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+// Ya no necesitamos useRouter de expo-router
 import { Colors } from '../../constants/Colors';
 import Fonts from '../../constants/Fonts';
 import Swiper from 'react-native-swiper';
@@ -32,10 +32,10 @@ import ArrowLeft from '../../assets/images/arrow-left.png';
 /**
  * Main EditProfileScreen component
  * Allows users to edit their profile information
+ * @param {Object} props - Component props including navigation
  */
-export default function EditProfileScreen() {
-  // Initialize router for navigation between screens
-  const router = useRouter();
+export default function EditProfileScreen({ navigation }) {
+  // We use the navigation prop from React Navigation
   // State for user data with default values
   const [userData, setUserData] = useState({
     name: 'Capybara Capybara',
@@ -84,9 +84,23 @@ export default function EditProfileScreen() {
    */
   const saveUserData = async () => {
     try {
+      // Aseguramos que la imagen seleccionada esté incluida en los datos del usuario
+      const updatedUserData = {
+        ...userData,
+        profileImage: profileImages[selectedImageIndex]
+      };
+      
+      // Actualizamos el estado local
+      setUserData(updatedUserData);
+      
       // Save the updated user data to AsyncStorage
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      router.back(); // Navigate back to the previous screen
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+      
+      // Aseguramos que los cambios se guarden correctamente en AsyncStorage
+      // No es necesario un evento personalizado en React Native
+      
+      // Navigate back to the previous screen
+      navigation.goBack();
     } catch (error) {
       console.error('Error saving user data:', error);
     }
@@ -101,7 +115,7 @@ export default function EditProfileScreen() {
       // Clear all data from AsyncStorage
       await AsyncStorage.clear();
       alert('Cuenta eliminada'); // Alert user of successful account deletion
-      router.back(); // Navigate back to the previous screen
+      navigation.goBack(); // Navigate back to the previous screen
     } catch (error) {
       console.error('Error deleting account:', error);
     }
@@ -130,7 +144,7 @@ export default function EditProfileScreen() {
       <StatusBar style="auto" />
       {/* Header section with back button, title and save button */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <View style={styles.backButtonCircle}>
             <Image source={ArrowLeft} style={styles.arrowIcon} />
           </View>
@@ -149,6 +163,10 @@ export default function EditProfileScreen() {
             <Image 
               source={userData.profileImage || profileImages[selectedImageIndex]}
               style={styles.profileImage}
+              resizeMode="cover"
+              fadeDuration={0}
+              // Añadimos una key única basada en la imagen para forzar la actualización
+              key={userData.profileImage ? JSON.stringify(userData.profileImage) : `profile-${selectedImageIndex}`}
             />
             <Text style={styles.editPhotoText}>Pulsa para cambiar la foto</Text>
           </TouchableOpacity>
@@ -207,10 +225,22 @@ export default function EditProfileScreen() {
                   style={[styles.imageOption, selectedImageIndex === index && styles.selectedImageOption]}
                   onPress={() => {
                     setSelectedImageIndex(index);
-                    setUserData({...userData, profileImage: profileImages[index]});
+                    // Actualizamos el estado con la nueva imagen seleccionada
+                    const updatedUserData = {...userData, profileImage: profileImages[index]};
+                    setUserData(updatedUserData);
+                    // Guardamos inmediatamente en AsyncStorage para asegurar que se actualice
+                    AsyncStorage.setItem('userData', JSON.stringify(updatedUserData))
+                      .catch(error => console.error('Error al guardar imagen:', error));
                   }}
                 >
-                  <Image source={image} style={styles.optionImage} />
+                  <Image 
+                    source={image} 
+                    style={styles.optionImage} 
+                    resizeMode="cover"
+                    fadeDuration={0}
+                    // Añadimos una key única para forzar la actualización
+                    key={`option-${index}`}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
